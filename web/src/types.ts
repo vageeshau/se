@@ -1,3 +1,5 @@
+export type SlaStatus = 'on_track' | 'breached' | 'met' | 'none';
+
 export interface Ticket {
   id: number;
   subject: string;
@@ -7,10 +9,16 @@ export interface Ticket {
   assigneeId: number | null;
   assigneeName: string | null;
   slaHours: number;
+  slaStatus: SlaStatus;
   commentCount: number;
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
+}
+
+export interface Agent {
+  id: number;
+  name: string;
 }
 
 export interface Comment {

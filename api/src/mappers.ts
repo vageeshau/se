@@ -1,3 +1,5 @@
+import { computeSlaStatus, type SlaStatus } from './sla';
+
 export interface TicketRow {
   id: number;
   subject: string;
@@ -29,6 +31,7 @@ export interface TicketDto {
   assigneeId: number | null;
   assigneeName: string | null;
   slaHours: number;
+  slaStatus: SlaStatus;
   commentCount: number;
   createdAt: string;
   updatedAt: string;
@@ -47,7 +50,8 @@ export interface CommentDto {
 export function toTicketDto(
   row: TicketRow,
   assigneeName: string | null,
-  commentCount: number
+  commentCount: number,
+  now: Date = new Date()
 ): TicketDto {
   return {
     id: row.id,
@@ -58,6 +62,15 @@ export function toTicketDto(
     assigneeId: row.assignee_id,
     assigneeName,
     slaHours: row.sla_hours,
+    slaStatus: computeSlaStatus(
+      {
+        createdAt: row.created_at,
+        slaHours: row.sla_hours,
+        resolvedAt: row.resolved_at,
+        status: row.status,
+      },
+      now
+    ),
     commentCount,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
