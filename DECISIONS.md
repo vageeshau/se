@@ -98,3 +98,9 @@
   survives a refresh.
 - An "at risk / due soon" badge for tickets close to their deadline.
 - A single shared ticket definition used by both the API and the frontend.
+- Implement real time status update/caching.
+- **Scale:** the ticket list has no pagination, and the columns I filter and sort
+  by (`status`, `assignee_id`, `created_at`) aren't indexed. Both are fine at the
+  current data size, but they'd be the first things I'd add before the table grew
+  large.
+
