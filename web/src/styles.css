@@ -74,6 +74,40 @@ a {
   color: #777;
 }
 
+.sla-on_track {
+  background: #e7f0e7;
+  color: #2f6b2f;
+}
+
+.sla-breached {
+  background: #f6e3e3;
+  color: #a33;
+}
+
+.sla-met {
+  background: #ececec;
+  color: #555;
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.filters select {
+  font-size: 0.9rem;
+  padding: 0.25rem 0.4rem;
+}
+
 .ticket-meta {
   display: grid;
   grid-template-columns: 8rem 1fr;

@@ -15,3 +15,12 @@ export const createTicketSchema = z.object({
 export const updateStatusSchema = z.object({
   status: z.enum(['open', 'in_progress', 'resolved', 'closed']),
 });
+
+export const listTicketsQuerySchema = z.object({
+  status: z.enum(['open', 'in_progress', 'resolved', 'closed']).optional(),
+  // Either a specific agent id, or the literal 'unassigned' for tickets with
+  // no assignee. Anything else is rejected (400).
+  assignee: z
+    .union([z.literal('unassigned'), z.coerce.number().int().positive()])
+    .optional(),
+});

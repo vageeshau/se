@@ -42,6 +42,83 @@ describe('GET /tickets', () => {
     expect(unassigned.assigneeName).toBeNull();
     expect(unassigned.commentCount).toBe(0);
   });
+
+  it('includes an SLA status for each ticket', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets' });
+    const tickets = res.json();
+
+    // Created 2h ago with a 4h window -> still on track.
+    const printer = tickets.find((t: any) => t.subject === 'Printer on fire');
+    expect(printer.slaStatus).toBe('on_track');
+
+    // Created 2 days ago with a 24h window, still unresolved -> breached.
+    const slow = tickets.find((t: any) => t.subject === 'Slow reports page');
+    expect(slow.slaStatus).toBe('breached');
+  });
+});
+
+describe('GET /tickets with filters', () => {
+  it('filters by status', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?status=in_progress' });
+
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].subject).toBe('Slow reports page');
+  });
+
+  it('filters by assignee', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?assignee=1' });
+
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].subject).toBe('Printer on fire');
+  });
+
+  it('combines status and assignee filters', async () => {
+    // Ada (assignee 1) owns an open ticket, so this matches it.
+    const match = await app.inject({
+      method: 'GET',
+      url: '/tickets?status=open&assignee=1',
+    });
+    expect(match.json()).toHaveLength(1);
+    expect(match.json()[0].subject).toBe('Printer on fire');
+
+    // Grace (assignee 2) owns an in_progress ticket, so open+2 matches nothing.
+    const none = await app.inject({
+      method: 'GET',
+      url: '/tickets?status=open&assignee=2',
+    });
+    expect(none.json()).toHaveLength(0);
+  });
+
+  it('filters to unassigned tickets', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?assignee=unassigned' });
+
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].subject).toBe('Unassigned question');
+    expect(tickets[0].assigneeId).toBeNull();
+  });
+
+  it('rejects an unknown status value', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?status=archived' });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('GET /users', () => {
+  it('lists agents ordered by name', async () => {
+    const res = await app.inject({ method: 'GET', url: '/users' });
+
+    expect(res.statusCode).toBe(200);
+    const users = res.json();
+    expect(users).toHaveLength(2);
+    expect(users.map((u: any) => u.name)).toEqual(['Ada Fixture', 'Grace Fixture']);
+    expect(users[0]).toMatchObject({ id: expect.any(Number), name: 'Ada Fixture' });
+  });
 });
 
 describe('GET /tickets/:id', () => {
@@ -124,5 +201,24 @@ describe('PATCH /tickets/:id/status', () => {
     });
 
     expect(res.statusCode).toBe(400);
+  });
+
+  it('clears resolved_at when a ticket is reopened', async () => {
+    // Resolve it (stamps resolved_at)...
+    const resolved = await app.inject({
+      method: 'PATCH',
+      url: '/tickets/1/status',
+      payload: { status: 'resolved' },
+    });
+    expect(resolved.json().resolvedAt).not.toBeNull();
+
+    // ...then reopen it: resolved_at must be cleared so SLA judges it live.
+    const reopened = await app.inject({
+      method: 'PATCH',
+      url: '/tickets/1/status',
+      payload: { status: 'in_progress' },
+    });
+    expect(reopened.json().status).toBe('in_progress');
+    expect(reopened.json().resolvedAt).toBeNull();
   });
 });
